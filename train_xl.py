@@ -254,14 +254,14 @@ class VitonHDDataset(data.Dataset):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Simple example of a training script.")
-    # parser.add_argument("--pretrained_model_name_or_path",type=str,default="diffusers/stable-diffusion-xl-1.0-inpainting-0.1",required=False,help="Path to pretrained model or model identifier from huggingface.co/models.",)
-    parser.add_argument("--pretrained_model_name_or_path", type=str, default="runwayml/stable-diffusion-inpainting",
-                        required=False,
-                        help="Path to pretrained model or model identifier from huggingface.co/models.", )
-    # parser.add_argument("--pretrained_garmentnet_path",type=str,default="stabilityai/stable-diffusion-xl-base-1.0",required=False,help="Path to pretrained model or model identifier from huggingface.co/models.",)
-    parser.add_argument("--pretrained_garmentnet_path", type=str, default="runwayml/stable-diffusion-v1-5",
-                        required=False,
-                        help="Path to pretrained model or model identifier from huggingface.co/models.", )
+    parser.add_argument("--pretrained_model_name_or_path",type=str,default="diffusers/stable-diffusion-xl-1.0-inpainting-0.1",required=False,help="Path to pretrained model or model identifier from huggingface.co/models.",)
+    # parser.add_argument("--pretrained_model_name_or_path", type=str, default="runwayml/stable-diffusion-inpainting",
+    #                     required=False,
+    #                     help="Path to pretrained model or model identifier from huggingface.co/models.", )
+    parser.add_argument("--pretrained_garmentnet_path",type=str,default="stabilityai/stable-diffusion-xl-base-1.0",required=False,help="Path to pretrained model or model identifier from huggingface.co/models.",)
+    # parser.add_argument("--pretrained_garmentnet_path", type=str, default="runwayml/stable-diffusion-v1-5",
+    #                     required=False,
+    #                     help="Path to pretrained model or model identifier from huggingface.co/models.", )
     parser.add_argument("--checkpointing_epoch",type=int,default=10,help=("Save a checkpoint of the training state every X updates. These checkpoints are only suitable for resuming"" training using `--resume_from_checkpoint`."),)
     parser.add_argument("--pretrained_ip_adapter_path",type=str,default="VTON-MINE/ckpt/ip_adapter/ip-adapter-plus_sdxl_vit-h.bin",help="Path to pretrained ip adapter model. If not specified weights are initialized randomly.",)
     parser.add_argument("--image_encoder_path",type=str,default="VTON-MINE/ckpt/image_encoder",required=False,help="Path to CLIP image encoder",)
@@ -291,7 +291,7 @@ def parse_args():
     parser.add_argument("--adam_weight_decay", type=float, default=1e-2, help="Weight decay to use.")
     parser.add_argument("--adam_epsilon", type=float, default=1e-08, help="Epsilon value for the Adam optimizer")
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
-    parser.add_argument("--data_dir", type=str, default="/home/omnious/workspace/yisol/Dataset/VITON-HD/zalando", help="For distributed training: local_rank")
+    parser.add_argument("--data_dir", type=str, default="VTON-MINE/", help="For distributed training: local_rank")
     
     args = parser.parse_args()
     env_local_rank = int(os.environ.get("LOCAL_RANK", -1))
@@ -344,9 +344,11 @@ def main():
 
     #customize unet start
     unet = UNet2DConditionModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="unet",low_cpu_mem_usage=False, device_map=None)
-    unet.config.encoder_hid_dim = image_encoder.config.hidden_size
+    # unet.config.encoder_hid_dim = image_encoder.config.hidden_size
+    unet.config.encoder_hid_dim = 512 * 7 * 7
     unet.config.encoder_hid_dim_type = "ip_image_proj"
-    unet.config["encoder_hid_dim"] = image_encoder.config.hidden_size
+    # unet.config["encoder_hid_dim"] = image_encoder.config.hidden_size
+    unet.config["encoder_hid_dim"] = 512 * 7 * 7
     unet.config["encoder_hid_dim_type"] = "ip_image_proj"
 
 
@@ -358,12 +360,14 @@ def main():
 
     #ip-adapter
     image_proj_model = Resampler(
-        dim=image_encoder.config.hidden_size,
+        # dim=image_encoder.config.hidden_size,
+        dim=512 * 7 * 7,
         depth=4,
         dim_head=64,
         heads=20,
         num_queries=args.num_tokens,
-        embedding_dim=image_encoder.config.hidden_size,
+        # embedding_dim=image_encoder.config.hidden_size,
+        embedding_dim=512 * 7 * 7,
         output_dim=unet.config.cross_attention_dim,
         ff_mult=4,
     ).to(accelerator.device, dtype=torch.float32)

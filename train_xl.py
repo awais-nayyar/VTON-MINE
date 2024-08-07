@@ -254,8 +254,14 @@ class VitonHDDataset(data.Dataset):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Simple example of a training script.")
-    parser.add_argument("--pretrained_model_name_or_path",type=str,default="diffusers/stable-diffusion-xl-1.0-inpainting-0.1",required=False,help="Path to pretrained model or model identifier from huggingface.co/models.",)
-    parser.add_argument("--pretrained_garmentnet_path",type=str,default="stabilityai/stable-diffusion-xl-base-1.0",required=False,help="Path to pretrained model or model identifier from huggingface.co/models.",)
+    # parser.add_argument("--pretrained_model_name_or_path",type=str,default="diffusers/stable-diffusion-xl-1.0-inpainting-0.1",required=False,help="Path to pretrained model or model identifier from huggingface.co/models.",)
+    parser.add_argument("--pretrained_model_name_or_path", type=str, default="runwayml/stable-diffusion-inpainting",
+                        required=False,
+                        help="Path to pretrained model or model identifier from huggingface.co/models.", )
+    # parser.add_argument("--pretrained_garmentnet_path",type=str,default="stabilityai/stable-diffusion-xl-base-1.0",required=False,help="Path to pretrained model or model identifier from huggingface.co/models.",)
+    parser.add_argument("--pretrained_garmentnet_path", type=str, default="runwayml/stable-diffusion-v1-5",
+                        required=False,
+                        help="Path to pretrained model or model identifier from huggingface.co/models.", )
     parser.add_argument("--checkpointing_epoch",type=int,default=10,help=("Save a checkpoint of the training state every X updates. These checkpoints are only suitable for resuming"" training using `--resume_from_checkpoint`."),)
     parser.add_argument("--pretrained_ip_adapter_path",type=str,default="VTON-MINE/ckpt/ip_adapter/ip-adapter-plus_sdxl_vit-h.bin",help="Path to pretrained ip adapter model. If not specified weights are initialized randomly.",)
     parser.add_argument("--image_encoder_path",type=str,default="VTON-MINE/ckpt/image_encoder",required=False,help="Path to CLIP image encoder",)
@@ -323,7 +329,18 @@ def main():
     unet_encoder = UNet2DConditionModel_ref.from_pretrained(args.pretrained_garmentnet_path, subfolder="unet")
     unet_encoder.config.addition_embed_type = None
     unet_encoder.config["addition_embed_type"] = None
-    image_encoder = CLIPVisionModelWithProjection.from_pretrained(args.image_encoder_path)
+    # image_encoder = CLIPVisionModelWithProjection.from_pretrained(args.image_encoder_path)
+    import torchvision.models as models
+
+    # Load the VGG16 model
+    image_encoder = models.vgg16(pretrained=True)
+
+    # Remove the last fully connected layer to get image features
+    image_encoder = torch.nn.Sequential(*list(image_encoder.features.children())[:-1])
+
+    # Set the model to evaluation mode
+    image_encoder.eval()
+    
 
     #customize unet start
     unet = UNet2DConditionModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="unet",low_cpu_mem_usage=False, device_map=None)

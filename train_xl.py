@@ -329,26 +329,26 @@ def main():
     unet_encoder = UNet2DConditionModel_ref.from_pretrained(args.pretrained_garmentnet_path, subfolder="unet")
     unet_encoder.config.addition_embed_type = None
     unet_encoder.config["addition_embed_type"] = None
-    # image_encoder = CLIPVisionModelWithProjection.from_pretrained(args.image_encoder_path)
-    import torchvision.models as models
+    image_encoder = CLIPVisionModelWithProjection.from_pretrained(args.image_encoder_path)
+    # import torchvision.models as models
 
     # Load the VGG16 model
-    image_encoder = models.vgg16(pretrained=True)
+    # image_encoder = models.vgg16(pretrained=True)
 
     # Remove the last fully connected layer to get image features
-    image_encoder = torch.nn.Sequential(*list(image_encoder.features.children())[:-1])
+    # image_encoder = torch.nn.Sequential(*list(image_encoder.features.children())[:-1])
 
     # Set the model to evaluation mode
-    image_encoder.eval()
+    # image_encoder.eval()
     
 
     #customize unet start
     unet = UNet2DConditionModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="unet",low_cpu_mem_usage=False, device_map=None)
-    # unet.config.encoder_hid_dim = image_encoder.config.hidden_size
-    unet.config.encoder_hid_dim = 512 * 7 * 7
+    unet.config.encoder_hid_dim = image_encoder.config.hidden_size
+    # unet.config.encoder_hid_dim = 512 * 7 * 7
     unet.config.encoder_hid_dim_type = "ip_image_proj"
-    # unet.config["encoder_hid_dim"] = image_encoder.config.hidden_size
-    unet.config["encoder_hid_dim"] = 512 * 7 * 7
+    unet.config["encoder_hid_dim"] = image_encoder.config.hidden_size
+    # unet.config["encoder_hid_dim"] = 512 * 7 * 7
     unet.config["encoder_hid_dim_type"] = "ip_image_proj"
 
 
@@ -360,14 +360,14 @@ def main():
 
     #ip-adapter
     image_proj_model = Resampler(
-        # dim=image_encoder.config.hidden_size,
-        dim=512 * 7 * 7,
+        dim=image_encoder.config.hidden_size,
+        # dim=512 * 7 * 7,
         depth=4,
         dim_head=64,
         heads=20,
         num_queries=args.num_tokens,
-        # embedding_dim=image_encoder.config.hidden_size,
-        embedding_dim=512 * 7 * 7,
+        embedding_dim=image_encoder.config.hidden_size,
+        # embedding_dim=512 * 7 * 7,
         output_dim=unet.config.cross_attention_dim,
         ff_mult=4,
     ).to(accelerator.device, dtype=torch.float32)
